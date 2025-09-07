@@ -13,7 +13,7 @@ export function setupAuth(app, config) {
     if (agent) app.locals.proxyAgent = agent;
 
     const mode = (common.authMode || "OIDC").toUpperCase();
-    if (authMode === "NONE") {
+    if (mode === "NONE") {
         console.log("[auth] AUTH_MODE=NONE → skipping authentication setup.");
         // no-op: just a passthrough middleware so apps don’t break
         app.use((req, res, next) => next());
