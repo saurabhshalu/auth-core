@@ -1,0 +1,21 @@
+{
+  "name": "@saurabhshalu/auth-core",
+  "version": "1.0.0",
+  "description": "Central Authentication for Node.js application for OIDC and CAS",
+  "main": "auth.js",
+  "exports": {
+    ".": "./auth.js"
+  },
+  "type": "module",
+  "author": "Saurabh Verma (skvermacodes@gmail.com)",
+  "license": "MIT",
+  "dependencies": {
+    "connect-cas2": "^1.2.5",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "https-proxy-agent": "^7.0.6",
+    "jsonwebtoken": "^9.0.2",
+    "jwk-to-pem": "^2.0.7",
+    "node-fetch": "^3.3.2"
+  }
+}
