@@ -51,7 +51,8 @@ export function protect(config) {
         `${appBase}/callback`,
         `${appBase}/backchannel-logout`,
         `${appBase}/cas/validate`,
-        `${appBase}/cas/serviceValidate`
+        `${appBase}/cas/serviceValidate`,
+        ...(config.common?.excludePathFromProtect || [])
     ];
 
     return async function (req, res, next) {

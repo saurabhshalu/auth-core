@@ -2,13 +2,23 @@
   "name": "@saurabhshalu/auth-core",
   "version": "1.0.0",
   "description": "Central Authentication for Node.js application for OIDC and CAS",
-  "main": "auth.js",
-  "exports": {
-    ".": "./auth.js"
-  },
-  "type": "module",
   "author": "Saurabh Verma (skvermacodes@gmail.com)",
   "license": "MIT",
+  "type": "module",
+  "main": "./dist/cjs/auth.js",
+  "module": "./dist/esm/auth.js",
+  "types": "./dist/esm/auth.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/auth.js",
+      "import": "./dist/esm/auth.js"
+    }
+  },
+  "scripts": {
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build": "npm run build:esm && npm run build:cjs"
+  },
   "dependencies": {
     "connect-cas2": "^1.2.5",
     "express": "^5.1.0",
@@ -17,5 +27,9 @@
     "jsonwebtoken": "^9.0.2",
     "jwk-to-pem": "^2.0.7",
     "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "typescript": "^5.9.2"
   }
 }

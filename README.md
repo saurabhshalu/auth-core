@@ -47,6 +47,7 @@ const config = {
     appBasePath: "/app-name",
     authMode: "OIDC", // "OIDC" | "CAS" | "NONE"
     sessionSecret: "LONG_SECRET",
+    //excludePathFromProtect: ["/additional/path/needs/to/be/excluded/from/protect"],
     // meEndpointContext: "/userReport", // defaults to "/me"
   },
   oidc: {
