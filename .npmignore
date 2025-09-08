@@ -1,0 +1,22 @@
+# Source files (not needed in npm package)
+src/
+tsconfig.json
+tsconfig.esm.json
+tsconfig.cjs.json
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# Node modules & logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Tests, docs, scripts (optional)
+tests/
