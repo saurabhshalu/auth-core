@@ -14,10 +14,15 @@
       "import": "./dist/esm/auth.js"
     }
   },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build": "npm run build:esm && npm run build:cjs"
+    "build": "npm run build:esm && npm run build:cjs",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
     "connect-cas2": "^1.2.5",
