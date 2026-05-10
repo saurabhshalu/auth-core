@@ -1,6 +1,6 @@
 {
   "name": "@saurabhshalu/auth-core",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Central Authentication for Node.js (OIDC + CAS) with OpenTelemetry and Redis Store",
   "author": "Saurabh Verma <skvermacodes@gmail.com>",
   "license": "MIT",
