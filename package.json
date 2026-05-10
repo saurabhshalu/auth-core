@@ -1,39 +1,86 @@
 {
   "name": "@saurabhshalu/auth-core",
-  "version": "1.0.0",
-  "description": "Central Authentication for Node.js application for OIDC and CAS",
-  "author": "Saurabh Verma (skvermacodes@gmail.com)",
+  "version": "2.0.0",
+  "description": "Central Authentication for Node.js (OIDC + CAS) with OpenTelemetry and Redis Store",
+  "author": "Saurabh Verma <skvermacodes@gmail.com>",
   "license": "MIT",
   "type": "module",
   "main": "./dist/cjs/auth.js",
-  "module": "./dist/esm/auth.js",
   "types": "./dist/esm/auth.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/esm/auth.d.ts",
+      "import": "./dist/esm/auth.js",
       "require": "./dist/cjs/auth.js",
-      "import": "./dist/esm/auth.js"
+      "default": "./dist/cjs/auth.js"
+    },
+    "./otel": {
+      "types": "./dist/esm/utils/otel.d.ts",
+      "import": "./dist/esm/utils/otel.js",
+      "require": "./dist/cjs/utils/otel.js",
+      "default": "./dist/cjs/utils/otel.js"
+    },
+    "./stores/redis": {
+      "types": "./dist/esm/stores/redisStore.d.ts",
+      "import": "./dist/esm/stores/redisStore.js",
+      "require": "./dist/cjs/stores/redisStore.js",
+      "default": "./dist/cjs/stores/redisStore.js"
+    },
+    "./utils/logger": {
+      "types": "./dist/esm/utils/logger.d.ts",
+      "import": "./dist/esm/utils/logger.js",
+      "require": "./dist/cjs/utils/logger.js",
+      "default": "./dist/cjs/utils/logger.js"
+    },
+    "./types": {
+      "types": "./dist/esm/types.d.ts"
     }
   },
+  "sideEffects": [
+    "./dist/esm/utils/otel.js",
+    "./dist/cjs/utils/otel.js"
+  ],
   "files": [
-    "dist/"
+    "dist/",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json && node ./scripts/write-cjs-pkg.js",
     "build": "npm run build:esm && npm run build:cjs",
     "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.75.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.217.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.217.0",
+    "@opentelemetry/resources": "^2.7.1",
+    "@opentelemetry/sdk-metrics": "^2.7.1",
+    "@opentelemetry/sdk-node": "^0.217.0",
+    "@opentelemetry/sdk-trace-node": "^2.7.1",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
     "connect-cas2": "^1.2.5",
-    "express": "^5.1.0",
+    "connect-redis": "^9.0.0",
+    "express": "^5.2.1",
     "express-session": "^1.18.2",
     "https-proxy-agent": "^7.0.6",
     "jsonwebtoken": "^9.0.2",
-    "jwk-to-pem": "^2.0.7",
-    "node-fetch": "^3.3.2"
+    "redis": "^5.10.0"
+  },
+  "overrides": {
+    "xml2js": "^0.6.2"
+  },
+  "peerDependencies": {
+    "axios": ">=0.30.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/express-session": "^1.18.2",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^24.3.1",
     "typescript": "^5.9.2"
   }
