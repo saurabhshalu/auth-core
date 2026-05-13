@@ -1,6 +1,6 @@
 # @saurabhshalu/auth-core
 
-**Central Authentication for Node.js (Express) apps** with **OIDC** and **CAS**, secure sessions, auto‑Redis, proxy + `NO_PROXY` support, OpenTelemetry bootstrap, structured logging, and a simple `/me` endpoint—now in **Pure TypeScript**.
+**Central Authentication for Node.js (Express) apps** with **OIDC** and **CAS**, secure sessions, auto‑Redis, proxy + `NO_PROXY` support, OpenTelemetry bootstrap, structured logging, `/me` endpoint, and a built‑in `/_health` endpoint for Kubernetes probes—now in **Pure TypeScript**.
 
 ---
 
@@ -11,6 +11,7 @@
 - ✅ **Stateless Support**: Cookieless Bearer token validation for APIs.
 - ✅ **One‑liner setup**: `setupAuth(app, config)` + `protect(config)`
 - ✅ **/me endpoint** with optional enrichment hooks
+- ✅ **/_health endpoint** for Kubernetes liveness/readiness probes (configurable, no auth/session overhead)
 - ✅ **Session management**:
   - `session` or `persistent` cookie modes
   - Auto‑enable **Redis** via env for multi‑pod deployments
@@ -237,6 +238,8 @@ All scalar configuration fields can be overridden using environment variables. B
 | `AUTH_CORE_COOKIE_SAME_SITE`           | Cookie SameSite attribute          | `lax`        | `lax`, `strict`, `none`     |
 | `AUTH_CORE_ALLOW_MEMORY_STORE_IN_PROD` | Allow MemoryStore in PRODUCTION    | `false`      | `true` (NOT recommended)    |
 | `AUTH_CORE_TOKEN_REFRESH_BUFFER`       | Buffer for auto-refresh (ms)       | `60000`      | 60 seconds                  |
+| `AUTH_CORE_HEALTH_ENDPOINT_CONTEXT`    | Path for the health endpoint       | `/_health`   | e.g. `/healthz`             |
+| `AUTH_CORE_DISABLE_HEALTH_ENDPOINT`    | Disable the built-in health route  | `false`      | `true`, `false`             |
 | `AUTH_CORE_ENV_PRIORITY`               | Precedence for resolution          | `env`        | `env` (ENV first), `config` |
 
 ### 2. OIDC (OpenID Connect)
@@ -248,7 +251,7 @@ All scalar configuration fields can be overridden using environment variables. B
 | `AUTH_CORE_OIDC_CLIENT_SECRET`         | OIDC Client Secret                 | `undefined`            | Optional               |
 | `AUTH_CORE_OIDC_REDIRECT_URI`          | Full callback URL                  | `undefined`            | **Required**           |
 | `AUTH_CORE_OIDC_SCOPE`                 | Scopes to request                  | `openid profile email` | space-separated string |
-| `AUTH_CORE_OIDC_ENABLE_PKCE`           | Enable Proof Key for Code Exchange | `true`                 | `true`, `false`        |
+| `AUTH_CORE_OIDC_ENABLE_PKCE`           | Enable Proof Key for Code Exchange | `false`                | `true`, `false`        |
 | `AUTH_CORE_VERIFY_AUDIENCE`            | Verify `aud` claim in tokens       | `false`                | `true`, `false`        |
 | `AUTH_CORE_OIDC_EXPECTED_AUDIENCE`     | Expected audience if not clientId  | `undefined`            |                        |
 | `AUTH_CORE_OIDC_DISCOVERY_TTL_MINUTES` | Discovery cache TTL (mins)         | `10`                   | Default 10 minutes     |
@@ -273,13 +276,14 @@ All scalar configuration fields can be overridden using environment variables. B
 
 ### 5. OpenTelemetry (Monitoring)
 
-| Variable                      | Description                    | Default                    |
-| :---------------------------- | :----------------------------- | :------------------------- |
-| `OTEL_SERVICE_NAME`           | Service name in traces/metrics | Auto-inferred              |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint        | `http://localhost:4318`    |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | Collector auth headers         | `Authorization=Bearer ...` |
-| `OTEL_ENABLE_TRACES`          | Enable span collection         | `true`                     |
-| `OTEL_ENABLE_METRICS`         | Enable metric collection       | `true`                     |
+| Variable                      | Description                         | Default                    |
+| :---------------------------- | :---------------------------------- | :------------------------- |
+| `OTEL_SERVICE_NAME`           | Service name in traces/metrics      | Auto-inferred              |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint             | `http://localhost:4318`    |
+| `OTEL_EXPORTER_OTLP_HEADERS`  | Collector auth headers              | `Authorization=Bearer ...` |
+| `OTEL_RESOURCE_ATTRIBUTES`    | Extra resource attrs (key=val,...)  | `""`                       |
+| `OTEL_ENABLE_TRACES`          | Enable span collection              | `true`                     |
+| `OTEL_ENABLE_METRICS`         | Enable metric collection            | `true`                     |
 
 ### 6. Corporate Proxy
 

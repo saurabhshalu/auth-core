@@ -5,10 +5,14 @@
 //
 // For apps bundled with ncc, use the preload instead:
 //   node --require @saurabhshalu/auth-core/otel-preload dist/bundle.js
-// See: docs/architecture/04-otel-investigation.md
 
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { resourceFromAttributes } from "@opentelemetry/resources";
+import {
+  resourceFromAttributes,
+  detectResources,
+  envDetector,
+  processDetector,
+} from "@opentelemetry/resources";
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -48,10 +52,15 @@ function otel(opts: OtelOptions = {}): OtelHandle {
 
   setDiagLevel(logLevel ?? "warn");
 
-  const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: serviceName,
-    [ATTR_SERVICE_VERSION]: serviceVersion ?? "0.0.0",
+  const detectedResource = detectResources({
+    detectors: [envDetector, processDetector],
   });
+  const resource = detectedResource.merge(
+    resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: serviceName,
+      [ATTR_SERVICE_VERSION]: serviceVersion ?? "0.0.0",
+    }),
+  );
 
   const traceExporter = enableTraces
     ? new OTLPTraceExporter({

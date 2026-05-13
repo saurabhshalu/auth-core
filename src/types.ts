@@ -41,6 +41,8 @@ export interface CommonConfig {
   sessionSecret?: string;
   environment?: string;
   meEndpointContext?: string;
+  healthEndpointContext?: string;
+  disableHealthEndpoint?: boolean;
   postLogoutRedirectUri?: string;
   opId?: string;
   buId?: string;

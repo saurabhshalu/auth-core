@@ -169,6 +169,14 @@ export function resolveConfig(
       c["cookieSameSite"],
       "lax",
     ) as string).toLowerCase() as "lax" | "strict" | "none",
+    healthEndpointContext: envFirst(
+      process.env["AUTH_CORE_HEALTH_ENDPOINT_CONTEXT"],
+      c["healthEndpointContext"],
+      "/_health",
+    ),
+    disableHealthEndpoint: preferEnv
+      ? toBool(process.env["AUTH_CORE_DISABLE_HEALTH_ENDPOINT"], c["disableHealthEndpoint"] ?? false)
+      : (c["disableHealthEndpoint"] ?? false),
   };
 
   const oidc = {

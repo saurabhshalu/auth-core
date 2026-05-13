@@ -69,6 +69,21 @@ function setupAuth(
   const common = (config["common"] ?? {}) as NonNullable<AuthConfig["common"]>;
   const log = buildLogger((config["logger"] as AuthConfig["logger"]) ?? null);
 
+  // ── /health endpoint (before any middleware — k8s probes) ──────────────────
+  const appBase = common.appBasePath ?? "";
+
+  if (
+    !common.disableHealthEndpoint &&
+    !(app.locals as Record<string, unknown>)["__authcore_health_registered"]
+  ) {
+    const healthPath = `${appBase}${common.healthEndpointContext ?? "/_health"}`;
+    app.get(healthPath, (_req: Request, res: Response) => {
+      res.status(200).json({ status: "ok" });
+    });
+    (app.locals as Record<string, unknown>)["__authcore_health_registered"] =
+      true;
+  }
+
   // Request logger (once per app)
   if (
     !(app.locals as Record<string, unknown>)["__authcore_reqlog_registered"]
@@ -240,7 +255,6 @@ function setupAuth(
     }
   };
 
-  const appBase = common.appBasePath ?? "";
   const mePath = `${appBase}${common.meEndpointContext ?? "/me"}`;
   app.get(mePath, meAPI as RequestHandler);
   app.post(mePath, meAPI as RequestHandler);
