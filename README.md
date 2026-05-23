@@ -1,35 +1,44 @@
-# @saurabhshalu/auth-core
+# Enterprise Node.js Authentication for Express (OIDC, CAS, Redis, OpenTelemetry)
 
-**Central Authentication for Node.js (Express) apps** with **OIDC** and **CAS**, secure sessions, auto‑Redis, proxy + `NO_PROXY` support, OpenTelemetry bootstrap, structured logging, `/me` endpoint, and a built‑in `/_health` endpoint for Kubernetes probes—now in **Pure TypeScript**.
+[![npm version](https://img.shields.io/npm/v/@saurabhshalu/auth-core.svg?style=flat-square)](https://www.npmjs.com/package/@saurabhshalu/auth-core)
+[![npm downloads](https://img.shields.io/npm/dm/@saurabhshalu/auth-core.svg?style=flat-square)](https://www.npmjs.com/package/@saurabhshalu/auth-core)
+[![license](https://img.shields.io/npm/l/@saurabhshalu/auth-core.svg?style=flat-square)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 
----
-
-## ✨ Features
-
-- 🛡️ **Pure TypeScript**: Fully typed with first-class support for ESM and CommonJS.
-- ✅ **Auth modes**: `OIDC`, `CAS`, or `NONE`
-- ✅ **Stateless Support**: Cookieless Bearer token validation for APIs.
-- ✅ **One‑liner setup**: `setupAuth(app, config)` + `protect(config)`
-- ✅ **/me endpoint** with optional enrichment hooks
-- ✅ **/_health endpoint** for Kubernetes liveness/readiness probes (configurable, no auth/session overhead)
-- ✅ **Session management**:
-  - `session` or `persistent` cookie modes
-  - Auto‑enable **Redis** via env for multi‑pod deployments
-  - Guard against MemoryStore in production
-- ✅ **OIDC Niceties**: PKCE (dynamic hashing), audience verification, token refresh
-- ✅ **CAS** integration with custom path support and JWT-synthetic tokens
-- ✅ **Proxy** support with **`NO_PROXY`/`no_proxy`** bypass
-- ✅ **OpenTelemetry** bootstrap (traces & metrics) with side-effect safety
-- ✅ **Structured logging** adapter + per‑request logger middleware
-- ✅ **ENV overrides** for all scalar settings with 12-factor compliance
+An enterprise-grade, highly resilient **Node.js authentication** library for **Express authentication** built in **Pure TypeScript**. Out-of-the-box support for **OIDC authentication** (**OpenID Connect**) and **CAS authentication**, secure sessions, automated multi-pod **Redis session store** failover, outbound enterprise proxy support, and native **OpenTelemetry tracing** & metrics bootstrap.
 
 ---
 
-## ⚙️ Requirements
+## 💡 Why auth-core?
 
-- **Node.js**: v18+ (v20+ recommended)
-- **Express**: v4+ or v5
-- **TypeScript**: v5+ (for consuming types)
+Standard **Express authentication** libraries often require hundreds of lines of complex boilerplate, custom session store handlers, manual token refreshes, and insecure session defaults. `auth-core` provides a resilient, secure solution out of the box:
+
+* 🔑 **One-Liner Integration**: Complete authentication setup in just two functions (`setupAuth` + `protect`).
+* 📊 **Production-Grade Resiliency**: Automated **Redis session store** management with automated connection retries, health guards, and secure local in-memory fallbacks.
+* 📈 **Built-in Observability**: Native **OpenTelemetry tracing** and structured logging with automatic sensitive token/header redaction.
+* 🛡️ **Unified Auth Protocol**: Handle stateful sessions alongside cookieless **bearer token authentication** for APIs under a single protection schema.
+
+---
+
+## 📐 Architecture Flow
+
+The library cleanly intercepts incoming request context to validate sessions or bearer tokens, seamlessly managing redirects and session storage:
+
+```
+  [ Client / Browser ]          [ Express App ]          [ auth-core ]          [ Identity Provider ]
+          │                            │                       │                          │
+          │────── 1. Request ─────────>│                       │                          │
+          │                            │── 2. Check Session ──>│                          │
+          │                            │                       │─── 3. Auth Redirect ────>│
+          │<──────── 4. Login Redirect ────────────────────────│                          │
+          │                            │                       │                          │
+          │───────────── 5. Authenticate & Callback ─────────────────────────────────────>│
+          │<──────────── 6. Code / Token Exchange ────────────────────────────────────────│
+          │                            │                       │                          │
+          │                            │<── 7. Save Session ───│                          │
+          │                            │                       │                          │
+          │<───── 8. Authenticated ────│                       │                          │
+```
 
 ---
 
@@ -41,37 +50,42 @@ npm install @saurabhshalu/auth-core
 
 ---
 
-## 🚀 Quick Start (OIDC)
+## ⚡ Quick Start
 
-### 1. Initialize Auth
-
-**app.ts** (or app.js)
+Get up and running with a secure **OIDC authentication** setup in less than 20 lines of code:
 
 ```typescript
 import express from "express";
 import { setupAuth, protect } from "@saurabhshalu/auth-core";
-import { authConfig } from "./authConfig.js";
 
 const app = express();
 
-// 1) Setup auth (registers session & routes like /callback, /logout, /me)
+// 1. Define the authentication configuration
+const authConfig = {
+  common: { authMode: "OIDC", sessionSecret: "my-secure-session-secret" },
+  oidc: {
+    issuer: "https://auth.example.com/realms/myrealm",
+    clientId: "my-app-client",
+    redirectUri: "http://localhost:3000/callback",
+  }
+};
+
+// 2. Initialize authentication & mount core callback routes
 setupAuth(app, authConfig);
 
-// 2) Protect your routes (Session-based for UI, Bearer-based for APIs)
-app.use(protect(authConfig));
-
-// 3) Your app routes
-app.get("/api/data", (req, res) => {
-  // req.user is now populated
-  res.json({ data: "Top Secret", user: req.user });
+// 3. Protect routes with the configuration
+app.get("/dashboard", protect(authConfig), (req, res) => {
+  res.json({ message: "Hello secure world!", user: req.user });
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+app.listen(3000, () => console.log("Server listening on port 3000"));
 ```
 
-### 2. Configuration
+---
 
-**authConfig.ts**
+## 🚀 Advanced Setup (Full Configuration)
+
+For production systems requiring session enrichment, lifecycle hooks, and fine-grained control:
 
 ```typescript
 import type { AuthConfig } from "@saurabhshalu/auth-core/types";
@@ -81,8 +95,8 @@ export const authConfig: AuthConfig = {
     appBasePath: "/my-app",
     authMode: "OIDC",
     environment: "PRODUCTION",
-    sessionSecret: process.env.AUTH_CORE_SESSION_SECRET, // Required in PROD
-    sessionCookieMode: "session", // "session" (on close) or "persistent"
+    sessionSecret: process.env.AUTH_CORE_SESSION_SECRET,
+    sessionCookieMode: "session",
     postLogoutRedirectUri: "https://myapp.com/my-app",
   },
   oidc: {
@@ -93,33 +107,21 @@ export const authConfig: AuthConfig = {
     scope: "openid profile email organization",
     verifyAudience: true,
   },
-  // 3. Enrichment Hooks (Optional)
-  enrichMe: async (session) => {
-    // Add extra data to the /me response (e.g., from an external DB)
-    return { 
-      permissions: ["READ_ONLY"],
-      lastLogin: new Date().toISOString() 
-    };
-  },
+  enrichMe: async (session) => ({ 
+    permissions: ["READ_ONLY"],
+    lastLogin: new Date().toISOString() 
+  }),
   enrichSession: async (session) => {
-    // Modify the session object once immediately after authentication
     session.customSessionFlag = "verified";
   },
-  // 4. Lifecycle Hooks (Optional)
   hooks: {
-    beforeAuthRedirect: async ({ req, provider }) => {
-      // Add extra query params to the OIDC login URL
-      return { 
-        extraAuthParams: { ui_locales: "en-GB" },
-        persistIntent: req.query.intent as string 
-      };
-    },
-    afterTokensVerified: async ({ tokens, userPatch }) => {
-      // Patch the user object based on token claims
-      return {
-        userPatch: { isAdmin: tokens.access_token.includes("admin_role") }
-      };
-    }
+    beforeAuthRedirect: async ({ req }) => ({ 
+      extraAuthParams: { ui_locales: "en-GB" },
+      persistIntent: req.query.intent as string 
+    }),
+    afterTokensVerified: async ({ tokens }) => ({
+      userPatch: { isAdmin: tokens.access_token.includes("admin_role") }
+    })
   }
 };
 ```
@@ -128,171 +130,168 @@ export const authConfig: AuthConfig = {
 
 ## 🌍 Stateless Bearer Support
 
-If a request contains an `Authorization: Bearer <token>` header, the library automatically:
+If a request contains an `Authorization: Bearer <token>` header, the library automatically bypasses stateful session management. It validates the signature against the active **OpenID Connect** provider and populates `req.user` and `req.auth`.
 
-1. **Skips the session middleware** (no cookies set, no Redis lookups).
-2. **Validates the token** against the OIDC provider.
-3. **Attaches the user** to `req.user` and `req.auth`.
-
-This allows your application to serve both web users (session-based) and mobile/API clients (stateless) using the same route protection.
+This allows your application to seamlessly support traditional web UI users (session-based) alongside mobile apps and service-to-service clients (**bearer token authentication**) using the exact same route decorators.
 
 ---
 
-## 📈 OpenTelemetry Bootstrap
+## 📈 OpenTelemetry & Custom Tracing
 
-Initialize tracing and metrics at the very top of your entry point:
+Initialize tracing at the absolute entry point of your server (before importing express or any database drivers):
 
 ```typescript
 import otel from "@saurabhshalu/auth-core/otel";
 
-// Initialize with defaults (uses OTEL_* env variables)
 otel({
   serviceName: "My-Service",
   logLevel: "info",
 });
 ```
 
+### Trace Enrichment Helper
+
+Enrich the active trace from anywhere in your application (e.g. inside Express handlers or background jobs):
+
+```typescript
+import { trace } from "@saurabhshalu/auth-core/otel";
+
+app.post("/api/checkout", (req, res) => {
+  // Attach attributes to the active span safely (null/undefined values are ignored)
+  trace.setAttributes({
+    "business.service_type": "checkout",
+    "business.tenant_id": req.body.tenantId,
+  });
+
+  // Add custom events
+  trace.addEvent("payment_initiated");
+
+  res.json({ success: true });
+});
+```
+
+> [!TIP]
+> Avoid using high-cardinality values (e.g. raw request payloads, UUIDs, or dynamic database IDs) as **attribute keys** to prevent telemetry storage bloat and performance degradation. Use clean namespaces like `business.*`.
+
 ---
 
 ## 🧭 Structured Logging
 
-The library includes a Winston/Pino-compatible adapter that automatically redacts sensitive tokens and headers.
+Includes a Winston/Pino-compatible logging adapter that automatically intercepts and redacts sensitive application headers and payload secrets:
 
 ```typescript
 import { requestLogger } from "@saurabhshalu/auth-core/utils/logger";
 
-// Register the request logger to get `req.log` and `req.requestId`
+// Mount the structured request logger
 app.use(requestLogger(myWinstonInstance));
 
 app.get("/test", (req, res) => {
-  req.log.info("Processing test request"); // Includes requestId automatically
+  req.log.info("Processing test request"); // Automatically carries request context IDs
   res.send("OK");
 });
 ```
 
 ---
 
-## ⚓ Enrichment Hooks
-
-Fine-tune your user data without modifying the core library.
-
-### `enrichMe`
-Allows you to add extra fields to the JSON returned by the `/me` endpoint. Useful for merging profile data from your own database.
-```typescript
-enrichMe: async (session) => ({
-  companyName: "Acme Corp"
-})
-```
-
-### `enrichSession`
-A one-time hook executed immediately after successful login. Use this to attach custom flags or data to `req.session` that should persist throughout the user's visit.
-```typescript
-enrichSession: async (session) => {
-  session.isVip = true;
-}
-```
-
----
-
-## 🪝 Lifecycle Hooks
-
-Intercept and modify the authentication flow at key points.
-
-### `beforeAuthRedirect`
-Runs right before the user is redirected to the OIDC provider. Use this to pass extra OIDC parameters (like `prompt`, `login_hint`, or `ui_locales`).
-```typescript
-beforeAuthRedirect: async ({ req }) => ({
-  extraAuthParams: { login_hint: req.query.email }
-})
-```
-
-### `afterTokensVerified`
-Runs after OIDC tokens are successfully verified (works for both **initial login** and **token refresh**). Use this to perform final user object patches or determine a custom redirect path.
-```typescript
-afterTokensVerified: async ({ tokens }) => {
-  // Logic based on tokens.id_token or tokens.access_token
-  return {
-    userPatch: { lastLogin: Date.now() }
-  };
-}
-```
-
----
-
 ## ⚙️ Environment Variables Reference
 
-All scalar configuration fields can be overridden using environment variables. By default, **Environment Variables take precedence** over the `authConfig` object (12-Factor style).
+All configurations can be overridden using system environment variables, following 12-factor application design principles. **Environment Variables take precedence** over configuration objects by default.
+
+### ⚡ Quick ENV Example
+
+```bash
+AUTH_CORE_AUTH_MODE=OIDC \
+AUTH_CORE_SESSION_SECRET=super-secret-key-123 \
+AUTH_CORE_OIDC_ISSUER_URL=https://auth.example.com/realms/myrealm \
+AUTH_CORE_OIDC_CLIENT_ID=my-client-id \
+AUTH_CORE_OIDC_REDIRECT_URI=https://myapp.com/callback \
+AUTH_CORE_SESSION_STORE=redis \
+AUTH_CORE_REDIS_URL=redis://localhost:6379 \
+node app.js
+```
 
 ### 1. General & Session
 
-| Variable                               | Description                        | Default      | Options                     |
-| :------------------------------------- | :--------------------------------- | :----------- | :-------------------------- |
-| `AUTH_CORE_AUTH_MODE`                  | Authentication protocol            | `OIDC`       | `OIDC`, `CAS`, `NONE`       |
-| `AUTH_CORE_ENVIRONMENT`                | App environment                    | `PRODUCTION` | `DEVELOPMENT`, `PRODUCTION` |
-| `AUTH_CORE_SESSION_SECRET`             | Secret for signing session cookies | `undefined`  | **Required in PRODUCTION**  |
-| `AUTH_CORE_APP_BASE_PATH`              | Base path for all auth routes      | `""`         | e.g. `/my-app`              |
-| `AUTH_CORE_ME_ENDPOINT_CONTEXT`        | Path for the `/me` user API        | `/me`        | e.g. `/api/profile`         |
-| `AUTH_CORE_SESSION_NAME`               | Name of the session cookie         | `NSESSIONID` |                             |
-| `AUTH_CORE_SESSION_COOKIE_MODE`        | Cookie persistence                 | `session`    | `session`, `persistent`     |
-| `AUTH_CORE_SESSION_IDLE_TIMEOUT_MINS`  | Max age for persistent cookies     | `15`         | minutes                     |
-| `AUTH_CORE_COOKIE_SAME_SITE`           | Cookie SameSite attribute          | `lax`        | `lax`, `strict`, `none`     |
-| `AUTH_CORE_ALLOW_MEMORY_STORE_IN_PROD` | Allow MemoryStore in PRODUCTION    | `false`      | `true` (NOT recommended)    |
-| `AUTH_CORE_TOKEN_REFRESH_BUFFER`       | Buffer for auto-refresh (ms)       | `60000`      | 60 seconds                  |
-| `AUTH_CORE_HEALTH_ENDPOINT_CONTEXT`    | Path for the health endpoint       | `/_health`   | e.g. `/healthz`             |
-| `AUTH_CORE_DISABLE_HEALTH_ENDPOINT`    | Disable the built-in health route  | `false`      | `true`, `false`             |
-| `AUTH_CORE_ENV_PRIORITY`               | Precedence for resolution          | `env`        | `env` (ENV first), `config` |
+| Variable | Description | Default | Options |
+| :--- | :--- | :--- | :--- |
+| `AUTH_CORE_AUTH_MODE` | Authentication protocol | `OIDC` | `OIDC`, `CAS`, `NONE` |
+| `AUTH_CORE_ENVIRONMENT` | App environment | `PRODUCTION` | `DEVELOPMENT`, `PRODUCTION` |
+| `AUTH_CORE_SESSION_SECRET` | Secret for signing session cookies | `undefined` | **Required in PRODUCTION** |
+| `AUTH_CORE_APP_BASE_PATH` | Base path for all auth routes | `""` | e.g. `/my-app` |
+| `AUTH_CORE_ME_ENDPOINT_CONTEXT` | Path for the `/me` user API | `/me` | e.g. `/api/profile` |
+| `AUTH_CORE_SESSION_NAME` | Name of the session cookie | `NSESSIONID` | |
+| `AUTH_CORE_SESSION_COOKIE_MODE` | Cookie persistence | `session` | `session`, `persistent` |
+| `AUTH_CORE_ALLOW_MEMORY_STORE_IN_PROD` | Allow MemoryStore in PRODUCTION | `false` | `true` (NOT recommended) |
+| `AUTH_CORE_HEALTH_ENDPOINT_CONTEXT` | Path for the health endpoint | `/_health` | e.g. `/healthz` |
+| `AUTH_CORE_DISABLE_HEALTH_ENDPOINT` | Disable the built-in health route | `false` | `true`, `false` |
 
 ### 2. OIDC (OpenID Connect)
 
-| Variable                               | Description                        | Default                | Options                |
-| :------------------------------------- | :--------------------------------- | :--------------------- | :--------------------- |
-| `AUTH_CORE_OIDC_ISSUER_URL`            | Base URL of the OIDC provider      | `undefined`            | **Required**           |
-| `AUTH_CORE_OIDC_CLIENT_ID`             | OIDC Client ID                     | `undefined`            | **Required**           |
-| `AUTH_CORE_OIDC_CLIENT_SECRET`         | OIDC Client Secret                 | `undefined`            | Optional               |
-| `AUTH_CORE_OIDC_REDIRECT_URI`          | Full callback URL                  | `undefined`            | **Required**           |
-| `AUTH_CORE_OIDC_SCOPE`                 | Scopes to request                  | `openid profile email` | space-separated string |
-| `AUTH_CORE_OIDC_ENABLE_PKCE`           | Enable Proof Key for Code Exchange | `false`                | `true`, `false`        |
-| `AUTH_CORE_VERIFY_AUDIENCE`            | Verify `aud` claim in tokens       | `false`                | `true`, `false`        |
-| `AUTH_CORE_OIDC_EXPECTED_AUDIENCE`     | Expected audience if not clientId  | `undefined`            |                        |
-| `AUTH_CORE_OIDC_DISCOVERY_TTL_MINUTES` | Discovery cache TTL (mins)         | `10`                   | Default 10 minutes     |
+| Variable | Description | Default | Options |
+| :--- | :--- | :--- | :--- |
+| `AUTH_CORE_OIDC_ISSUER_URL` | Base URL of the OIDC provider | `undefined` | **Required** |
+| `AUTH_CORE_OIDC_CLIENT_ID` | OIDC Client ID | `undefined` | **Required** |
+| `AUTH_CORE_OIDC_CLIENT_SECRET` | OIDC Client Secret | `undefined` | Optional |
+| `AUTH_CORE_OIDC_REDIRECT_URI` | Full callback URL | `undefined` | **Required** |
+| `AUTH_CORE_OIDC_SCOPE` | Scopes to request | `openid profile email` | space-separated string |
+| `AUTH_CORE_OIDC_ENABLE_PKCE` | Enable Proof Key for Code Exchange | `false` | `true`, `false` |
 
 ### 3. Redis & Auto-Store
 
-| Variable                      | Description                     | Default     | Options                        |
-| :---------------------------- | :------------------------------ | :---------- | :----------------------------- |
-| `AUTH_CORE_SESSION_STORE`     | Enable automatic Redis store    | `undefined` | Set to `redis` to enable       |
-| `AUTH_CORE_REDIS_URL`         | Redis connection string         | `undefined` | e.g. `redis://localhost:6379`  |
-| `AUTH_CORE_REDIS_PREFIX`      | Prefix for session keys         | `sess:`     |                                |
-| `AUTH_CORE_SESSION_INIT_MODE` | Error behavior if Redis is down | `fail`      | `fail`, `fallback` (to Memory) |
+| Variable | Description | Default | Options |
+| :--- | :--- | :--- | :--- |
+| `AUTH_CORE_SESSION_STORE` | Enable automatic Redis store | `undefined` | Set to `redis` to enable |
+| `AUTH_CORE_REDIS_URL` | Redis connection string | `undefined` | e.g. `redis://localhost:6379` |
+| `AUTH_CORE_REDIS_PREFIX` | Prefix for session keys | `sess:` | |
+| `AUTH_CORE_SESSION_INIT_MODE` | Error behavior if Redis is down | `fail` | `fail`, `fallback` (to Memory) |
+
+#### 🛡️ Redis & Auto-Store Resiliency Behavior
+
+Under network partitions, database outages, or dynamic node crashes, the initialization behavior is controlled by the `AUTH_CORE_SESSION_INIT_MODE` parameter:
+
+*   **Fail Mode (`fail`)**: Instantly aborts the bootstrapping process and throws a hard startup exception if the remote Redis instance is unreachable. This prevents split-brain session states or data loss in strict, highly stateful environments.
+*   **Fallback Mode (`fallback`)**: Seamlessly shunts active sessions and incoming request state into an encrypted, local in-memory store. Simultaneously, it spawns an async exponential backoff retry handler (5 attempts, max delay 10 seconds). Once the remote database heartbeat health check resolves, sessions are transparently re-synchronized without dropping client connections or requiring application restarts.
 
 ### 4. CAS (Central Authentication Service)
 
-| Variable                                 | Description                     | Default     | Options              |
-| :--------------------------------------- | :------------------------------ | :---------- | :------------------- |
-| `AUTH_CORE_CAS_SERVER_PATH`              | Base URL of the CAS server      | `undefined` | **Required for CAS** |
-| `AUTH_CORE_CAS_SERVICE_PREFIX`           | External URL of your app        | `undefined` | **Required for CAS** |
-| `AUTH_CORE_CAS_TOKEN_SECRET`             | Secret for synthetic CAS tokens | `undefined` | **Required for CAS** |
-| `AUTH_CORE_CAS_TOKEN_EXPIRES_IN_SECONDS` | Synthetic token TTL             | `3600`      |                      |
+| Variable | Description | Default | Options |
+| :--- | :--- | :--- | :--- |
+| `AUTH_CORE_CAS_SERVER_PATH` | Base URL of the CAS server | `undefined` | **Required for CAS** |
+| `AUTH_CORE_CAS_SERVICE_PREFIX` | External URL of your app | `undefined` | **Required for CAS** |
+| `AUTH_CORE_CAS_TOKEN_SECRET` | Secret for synthetic CAS tokens | `undefined` | **Required for CAS** |
 
 ### 5. OpenTelemetry (Monitoring)
 
-| Variable                      | Description                         | Default                    |
-| :---------------------------- | :---------------------------------- | :------------------------- |
-| `OTEL_SERVICE_NAME`           | Service name in traces/metrics      | Auto-inferred              |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint             | `http://localhost:4318`    |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | Collector auth headers              | `Authorization=Bearer ...` |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Extra resource attrs (key=val,...)  | `""`                       |
-| `OTEL_ENABLE_TRACES`          | Enable span collection              | `true`                     |
-| `OTEL_ENABLE_METRICS`         | Enable metric collection            | `true`                     |
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `OTEL_SERVICE_NAME` | Service name in traces/metrics | Auto-inferred |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint | `http://localhost:4318` |
+| `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attrs (key=val,...) | `""` |
+| `OTEL_ENABLE_TRACES` | Enable span collection | `true` |
 
 ### 6. Corporate Proxy
 
-| Variable                  | Description                        | Default               |
-| :------------------------ | :--------------------------------- | :-------------------- |
-| `AUTH_CORE_PROXY_ENABLED` | Use an outbound proxy for OIDC/CAS | `false`               |
-| `AUTH_CORE_PROXY_HOST`    | Proxy hostname                     | `undefined`           |
-| `AUTH_CORE_PROXY_PORT`    | Proxy port                         | `undefined`           |
-| `AUTH_CORE_NO_PROXY`      | Bypass proxy for these hosts       | `localhost,127.0.0.1` |
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `AUTH_CORE_PROXY_ENABLED` | Use an outbound proxy for OIDC/CAS | `false` |
+| `AUTH_CORE_PROXY_HOST` | Proxy hostname | `undefined` |
+| `AUTH_CORE_NO_PROXY` | Bypass proxy for these hosts | `localhost,127.0.0.1` |
+
+---
+
+## ❓ FAQ / Troubleshooting
+
+### 🔑 Token Expiry & Silent Rotation
+**Q: How does the library handle expired access tokens?**  
+**A:** `auth-core` applies an automated silent rotation mechanism during route protection. If an OIDC access token is nearing expiry (within the configured `tokenRefreshBufferMs` leeway), it leverages the stored `refresh_token` to retrieve a fresh token set from the identity provider seamlessly in the background. This ensures active browser sessions are kept alive transparently without forcing interactive user logins or page refreshes.
+
+### 🌐 Proxy Trapping & Host Routing
+**Q: Does enabling the corporate proxy trap local incoming routes?**  
+**A:** No. Specifying the `AUTH_CORE_PROXY_HOST` wraps only the outbound server-to-server identity handshakes (such as JWKS verification and token exchange endpoints). It remains completely isolated from, and ignores, incoming internal platform requests, load balancers, or proxy mappings. You can use the `AUTH_CORE_NO_PROXY` bypass array to explicitly exclude local internal services.
+
+### ⏱️ Distributed Clock Drift & Leeway
+**Q: How do we prevent token verification failures due to server clock drift?**  
+**A:** Distributed architectures like Kubernetes can experience clock drift across worker nodes. To guarantee high availability and prevent premature validation rejections, `auth-core` applies a default **60-second leeway buffer** during all JWT `iat`, `nbf`, and `exp` validations.
 
 ---
 

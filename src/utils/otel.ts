@@ -21,9 +21,9 @@ import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentation
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-proto";
-import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
+import { diag, DiagConsoleLogger, DiagLogLevel, trace as otelTrace } from "@opentelemetry/api";
 import { registry } from "./singletonRegistry.js";
-import type { OtelOptions, OtelHandle } from "../types.js";
+import type { OtelOptions, OtelHandle, TraceHelper } from "../types.js";
 
 // -----------------------------------------------------------------------------
 
@@ -188,4 +188,48 @@ function defaultInstrumentationOverrides(): Record<string, object> {
   };
 }
 
+export const trace: TraceHelper = {
+  setAttributes(attributes: Record<string, any>): void {
+    try {
+      const span = otelTrace.getActiveSpan();
+      if (!span || typeof span.setAttributes !== "function") return;
+
+      const validAttrs: Record<string, any> = {};
+      for (const [key, val] of Object.entries(attributes)) {
+        if (val !== undefined && val !== null) {
+          validAttrs[key] = val;
+        }
+      }
+
+      if (Object.keys(validAttrs).length > 0) {
+        span.setAttributes(validAttrs);
+      }
+    } catch (err) {
+      // Safe no-op on any error
+    }
+  },
+
+  addEvent(name: string, attributes?: Record<string, any>): void {
+    try {
+      const span = otelTrace.getActiveSpan();
+      if (!span || typeof span.addEvent !== "function") return;
+
+      if (attributes) {
+        const validAttrs: Record<string, any> = {};
+        for (const [key, val] of Object.entries(attributes)) {
+          if (val !== undefined && val !== null) {
+            validAttrs[key] = val;
+          }
+        }
+        span.addEvent(name, validAttrs);
+      } else {
+        span.addEvent(name);
+      }
+    } catch (err) {
+      // Safe no-op on any error
+    }
+  },
+};
+
 export default otel;
+

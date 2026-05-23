@@ -310,3 +310,11 @@ export interface OtelOptions {
 export interface OtelHandle {
   shutdown: () => Promise<void>;
 }
+
+// ── Trace Helper ────────────────────────────────────────────────────────────
+
+export interface TraceHelper {
+  setAttributes(attributes: Record<string, any>): void;
+  addEvent(name: string, attributes?: Record<string, any>): void;
+}
+
